@@ -107,7 +107,7 @@ while True:
         GPIO.output(,GPIO.LOW)
         if (PIR1on == True and LDRon == True and b_out == 1):
             GPIO.output(26,GPIO.HIGH)
-        
+
 
    # print('LDR: '+ str(LDRon) + 'PIR: ' + str(PIRon))
 
