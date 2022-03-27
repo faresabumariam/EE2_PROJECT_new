@@ -1,22 +1,16 @@
 import RPi.GPIO as GPIO, time
+import re;
 import urllib, json
 
+
+#Setting up Buzzer
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-
 GPIO.setup(23, GPIO.OUT)
 
-# getting data from the database
-url = "https://studev.groept.be/api/a21ib2d04/getZone"
-response = urllib.urlopen(url)
-data = json.loads(response.read())
-zone = str(data)
-print(zone)
-
+#Setting up notes
 tone1 = GPIO.PWM(23, 100)
 
-#50 seems to be the all around best value for duty cycle for buzzers
-tone1.start(50)
 #Note frequencies, starting with a C
 #speaker works good from 32hz to about 500hz, so the first four octaves here
 c = [32, 65, 131, 262, 523]
@@ -39,38 +33,167 @@ aminor = [a, b, c, d, e, f, g]
 def playScale(scale, pause):
     for i in range(0, 5):
         for note in scale:
-            tone1.ChangeFrequency(note[i])
+            tone1.ChangeFrequency(note[i] * numberList[0]/100 + 0.0001)
             time.sleep(pause)
     tone1.stop()
 
-#Star Wars Theme -- Key of C
-if zone == "[{u'zone': u'1'}]" or zone == "[{u'zone': u'4'}]" or zone == "[{u'zone': u'7'}]":
-    starwars_notes = [c[3], g[3], f[3], e[3], d[3], c[4], g[3], f[3], e[3], d[3], c[4], g[3],
-                    f[3], e[3], f[3], d[3]]
-    starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
-elif zone == "[{u'zone': u'2'}]" or zone == "[{u'zone': u'5'}]" or zone == "[{u'zone': u'8'}]":
-    starwars_notes = [c[2], g[2], f[2], e[2], d[2], c[3], g[2], f[2], e[2], d[2], c[3], g[2],
-                      f[2], e[2], f[2], d[2]]
-    starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
-elif zone == "[{u'zone': u'3'}]" or zone == "[{u'zone': u'6'}]" or zone == "[{u'zone': u'9'}]":
-    starwars_notes = [c[1], g[1], f[1], e[1], d[1], c[2], g[1], f[1], e[1], d[1], c[2], g[1],
-                      f[1], e[1], f[1], d[1]]
-    starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
-else:
-    starwars_notes = [a[0]]
-    starwars_beats = [1]
-    print("zone not possible")
-
-
-
 def playSong(songnotes, songbeats, tempo):
-    while True:
-        tone1.ChangeDutyCycle(50)
-        for i in range(0, len(songnotes)):
-            tone1.ChangeFrequency(songnotes[i])
-            time.sleep(songbeats[i]*tempo)
-        tone1.ChangeDutyCycle(0)
+    tone1.start(50)
+    tone1.ChangeDutyCycle(50)
+    for i in range(0, len(songnotes)):
+        tone1.ChangeFrequency(songnotes[i] * numberList[0]/100 + 0.0001)
+        time.sleep(songbeats[i]*tempo)
+    tone1.ChangeDutyCycle(0)
 
 
-playSong(starwars_notes, starwars_beats, 0.2)
+while True:
+    # getting data from the database
+    url = "https://studev.groept.be/api/a21ib2d04/getZone"
+    response = urllib.urlopen(url)
+    data = json.loads(response.read())
+    zone = str(data)
+    print(zone)
+
+    url = "https://studev.groept.be/api/a21ib2d04/getSoundStatus"
+    response = urllib.urlopen(url)
+    data = json.loads(response.read())
+    numberList = [int(num) for num in re.findall(r"\d+", str(data))]
+    print(numberList)
+
+    url = "https://studev.groept.be/api/a21ib2d04/getSongSatus"
+    response = urllib.urlopen(url)
+    data = json.loads(response.read())
+    songList = [int(num) for num in re.findall(r"\d+", str(data))]
+    print(songList)
+
+    #songs depending on zone
+    if zone == "[{u'zone': u'1'}]" or zone == "[{u'zone': u'4'}]" or zone == "[{u'zone': u'7'}]":
+        if songList[0] == 1:
+            starwars_notes = [c[3], g[3], f[3], e[3], d[3], c[4], g[3], f[3], e[3], d[3], c[4], g[3],
+                              f[3], e[3], f[3], d[3]]
+            starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
+            playSong(starwars_notes, starwars_beats, 0.2)
+        if songList[0] == 2:
+            londonbridges_notes = [g[3], a[3], g[3], f[3], e[3], f[3], g[3], d[3], e[3], f[3],
+                                   e[3], f[3], g[3], g[3], a[3], g[3], f[3], e[3], f[3], g[3],
+                                   d[3], g[3], e[3], c[3]]
+            londonbridges_beats = [2, 0.5, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2, 0.5, 1, 1, 1, 1,
+                                   2, 2, 2, 1,1]
+            playSong(londonbridges_notes, londonbridges_beats, 0.3)
+        if songList[0] == 3:
+            twinkletwinkle_notes = [c[4],c[4],g[4],g[4],a[4],a[4],g[4],
+                                    f[4],f[4],e[4],e[4],d[4],d[4],c[4],
+                                    g[4],g[4],f[4],f[4],e[4],e[4],d[4],
+                                    g[4],g[4],f[4],f[4],e[4],e[4],d[4],
+                                    c[4],c[4],g[4],g[4],a[4],a[4],g[4],
+                                    f[4],f[4],e[4],e[4],d[4],d[4],c[4]]
+            twinkletwinkle_beats = [    4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6]
+            playSong(twinkletwinkle_notes,twinkletwinkle_beats, 0.1)
+        if songList[0] == 4:
+            manaderna_notes = [e[4],e[4],f[4],g[4],g[4],f[4],e[4],d[4],c[4],c[4],d[4],e[4],d[4],c[4],c[4],
+                               d[4],d[4],e[4],c[4],d[4],e[4],f[4],e[4],c[4],d[4],e[4],f[4],e[4],d[4],c[4],d[4],g[3]]
+
+            manaderna_beats = [    2,2,2,2,
+                                   2,2,2,2,
+                                   2,2,2,2,
+                                   2,4,2,
+                                   2,2,2,2,
+                                   2,4,4,2,2,
+                                   2,4,4,2,2,
+                                   2,2,1]
+            playSong(manaderna_notes, manaderna_beats, 0.2)
+
+
+    elif zone == "[{u'zone': u'2'}]" or zone == "[{u'zone': u'5'}]" or zone == "[{u'zone': u'8'}]":
+        if songList[0] == 1:
+            starwars_notes = [c[2], g[2], f[2], e[2], d[2], c[3], g[2], f[2], e[2], d[2], c[3], g[2],
+                              f[2], e[2], f[2], d[2]]
+            starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
+            playSong(starwars_notes, starwars_beats, 0.2)
+        if songList[0] == 2:
+
+            londonbridges_notes = [g[2], a[2], g[2], f[2], e[2], f[2], g[2], d[2], e[2], f[2],
+                                   e[2], f[2], g[2], g[2], a[2], g[2], f[2], e[2], f[2], g[2],
+                                   d[2], g[2], e[2], c[2]]
+            londonbridges_beats = [2, 0.5, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2, 0.5, 1, 1, 1, 1,
+                                   2, 2, 2, 1,1]
+            playSong(londonbridges_notes, londonbridges_beats, 0.3)
+        if songList[0] == 3:
+            twinkletwinkle_notes = [c[3],c[3],g[3],g[3],a[3],a[3],g[3],
+                                    f[3],f[3],e[3],e[3],d[3],d[3],c[3],
+                                    g[3],g[3],f[3],f[3],e[3],e[3],d[3],
+                                    g[3],g[3],f[3],f[3],e[3],e[3],d[3],
+                                    c[3],c[3],g[3],g[3],a[3],a[3],g[3],
+                                    f[3],f[3],e[3],e[3],d[3],d[3],c[3]]
+            twinkletwinkle_beats = [    4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,]
+            playSong(twinkletwinkle_notes,twinkletwinkle_beats, 0.1)
+        if songList[0] == 4:
+            manaderna_notes = [e[3],e[3],f[3],g[3],g[3],f[3],e[3],d[3],c[3],c[3],d[3],e[3],d[3],c[3],c[3],
+                               d[3],d[3],e[3],c[3],d[3],e[3],f[3],e[3],c[3],d[3],e[3],f[3],e[3],d[3],c[3],d[3],g[2]]
+
+            manaderna_beats = [    2,2,2,2,
+                                   2,2,2,2,
+                                   2,2,2,2,
+                                   2,4,2,
+                                   2,2,2,2,
+                                   2,4,4,2,2,
+                                   2,4,4,2,2,
+                                   2,2,1]
+            playSong(manaderna_notes, manaderna_beats, 0.2)
+
+    elif zone == "[{u'zone': u'3'}]" or zone == "[{u'zone': u'6'}]" or zone == "[{u'zone': u'9'}]":
+        if songList[0] == 1:
+            starwars_notes = [c[1], g[1], f[1], e[1], d[1], c[2], g[1], f[1], e[1], d[1], c[2], g[1],
+                              f[1], e[1], f[1], d[1]]
+            starwars_beats = [4,4,1,1,1,4,4,1,1,1,4,4,1,1,1,4]
+            playSong(starwars_notes, starwars_beats, 0.2)
+        if songList[0] == 2:
+            londonbridges_notes = [g[1], a[1], g[1], f[1], e[1], f[1], g[1], d[1], e[1], f[1],
+                                   e[1], f[1], g[1], g[1], a[1], g[1], f[1], e[1], f[1], g[1],
+                                   d[1], g[1], e[1], c[1]]
+            londonbridges_beats = [2, 0.5, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2, 0.5, 1, 1, 1, 1,
+                                   2, 2, 2, 1,1]
+            playSong(londonbridges_notes, londonbridges_beats, 0.3)
+        if songList[0] == 3:
+            twinkletwinkle_notes = [c[2],c[2],g[2],g[2],a[2],a[2],g[2],
+                                    f[2],f[2],e[2],e[2],d[2],d[2],c[2],
+                                    g[2],g[2],f[2],f[2],e[2],e[2],d[2],
+                                    g[2],g[2],f[2],f[2],e[2],e[2],d[2],
+                                    c[2],c[2],g[2],g[2],a[2],a[2],g[2],
+                                    f[2],f[2],e[2],e[2],d[2],d[2],c[2]]
+            twinkletwinkle_beats = [    4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,
+                                        4,4,4,4,4,4,6,]
+            playSong(twinkletwinkle_notes,twinkletwinkle_beats, 0.1)
+        if songList[0] == 4:
+            manaderna_notes = [e[2],e[2],f[2],g[2],g[2],f[2],e[2],d[2],c[2],c[2],d[2],e[2],d[2],c[2],c[2],
+                               d[2],d[2],e[2],c[2],d[2],e[2],f[2],e[2],c[2],d[2],e[2],f[2],e[2],d[2],c[2],d[2],g[1]]
+
+            manaderna_beats = [    2,2,2,2,
+                                   2,2,2,2,
+                                   2,2,2,2,
+                                   2,4,2,
+                                   2,2,2,2,
+                                   2,4,4,2,2,
+                                   2,4,4,2,2,
+                                   2,2,1]
+            playSong(manaderna_notes, manaderna_beats, 0.2)
+    else:
+        starwars_notes = [a[0]]
+        starwars_beats = [1]
+        print("zone not possible")
+        playSong(starwars_notes, starwars_beats, 0.2)
 
