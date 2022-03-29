@@ -5,7 +5,7 @@
       <paths name="student@raspberrypi.local:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/student/code" local="$PROJECT_DIR$" />
+            <mapping deploy="/student/home/code" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
