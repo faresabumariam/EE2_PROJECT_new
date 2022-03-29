@@ -4,7 +4,7 @@ from gpiozero import Servo
 from time import sleep
 import spidev
 
-servo = Servo(17)
+servo = Servo(21)
 val = 0
 
 spi = spidev.SpiDev()
@@ -17,7 +17,7 @@ def readChannel(channel):
     data = ((value[1]&3) << 8) + value[2]
     return data
 
-while (True):
+while True:
     if __name__ == "__main__":
         v=(readChannel(0)/1023.0)*3.3
        # dist = 16.2537 * v**4 - 129.893 * v**3 + 382.268 * v**2 - 512.611 * v + 301.439

@@ -1,76 +1,54 @@
+import RPi.GPIO as GPIO
 import time
+from gpiozero import LED
 import urllib.request
 import urllib.parse
-import spidev
+import json
 
-spi = spidev.SpiDev()
-spi.open(0, 0)
-spi.max_speed_hz = 1000000
-PIR1 = -1
-PIR2 = -1
+PIR1, PIR2, LDR, LED1, LED2 = 26, 19, 13, 17, 12
 
+# led = LED(26)
 
-def readChannel(channel):
-    val = spi.xfer2([1, (8 + channel) << 4, 0])
-    data = ((val[1] & 3) << 8) + val[2]
-    return data
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(PIR1, GPIO.IN)  # PIR1
+GPIO.setup(PIR2, GPIO.IN)  # PIR2
+GPIO.setup(LDR, GPIO.IN)  # 0 if covered, 1 if not
+GPIO.setup(LED1, GPIO.OUT)  # LED1
+GPIO.setup(LED2, GPIO.OUT)  # LED2
 
+GPIO.output(LED1, GPIO.LOW)
+
+counter1 = 0
+counter2 = 0
+room1Full = False
+room2Full = False
+
+room1Full = False
+room2Full = False
 
 while True:
-    if __name__ == "__main__":
-        v1 = (readChannel(0) / 1023.0) * 3.3
-        v2 = (readChannel(1) / 1023.0) * 3.3
-        v3 = (readChannel(2) / 1023.0) * 3.3
-        dist1 = 8.53 * v1 ** 4 - 54.90 * v1 ** 3 + 131.26 * v1 ** 2 - 144.85 * v1 + 72.28 - 0.3
-        dist2 = 8.53 * v2 ** 4 - 54.90 * v2 ** 3 + 131.26 * v2 ** 2 - 144.85 * v2 + 72.28 - 0.3
-        dist3 = 8.53 * v3 ** 4 - 54.90 * v3 ** 3 + 131.26 * v3 ** 2 - 144.85 * v3 + 72.28 - 0.3
-        #print("Distance: %.2f cm" % dist1)
+    if GPIO.input(PIR1):
+        time.sleep(5)
+        counter1 += 1
+    if (GPIO.input(PIR2) and counter1 %2!=0):
+        time.sleep(5)
+        counter2 += 1
 
-        if dist1 < 30 and dist2 > 30 and dist3 > 30:
-            if dist1 < 10:
-                print('zone 1')
-                zone = str(1)
-                urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-            else:
-                if dist1 < 20:
-                    print('zone 2')
-                    zone = str(2)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-                else:
-                    print("zone 3")
-                    zone = str(3)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
+    if counter1 % 2 != 0 and counter1 != 0 and counter2 % 2 == 0 and GPIO.input(LDR) == 1:
+        room1Full = True
+        GPIO.output(LED1, GPIO.HIGH)
+    else:
+        room1Full = False
+        GPIO.output(LED1, GPIO.LOW)
 
+    if counter2 % 2 != 0 and counter2 != 0 and counter1 % 2 != 0 and GPIO.input(LDR) == 1:
+        room2Full = True
+        GPIO.output(LED2, GPIO.HIGH)
+    else:
+        room1Full = False
+        GPIO.output(LED2, GPIO.LOW)
 
-        elif dist1 > 30 and dist2 < 30 and dist3>30:
-            if dist2 < 10:
-                print('zone 4')
-                zone = str(4)
-                urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-            else:
-                if dist2 < 20:
-                    print('zone 5')
-                    zone = str(5)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-                else:
-                    print("zone 6")
-                    zone = str(6)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-
-        elif dist1 > 30 and dist2 > 30 and dist3 < 30:
-            if dist3 < 10:
-                print('zone 7')
-                zone = str(7)
-                urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-            else:
-                if dist3 < 20:
-                    print('zone 8')
-                    zone = str(8)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-                else:
-                    print("zone 9")
-                    zone = str(1)
-                    urllib.request.urlopen('https://studev.groept.be/api/a21ib2D04/input/'+zone+'/'+PIR1+'/'+PIR2)
-
-    time.sleep(1);
-
+    print("counter 1:" + str(counter1) + "       " + "counter 2:" + str(counter2) + "     room1full? :     " + str(
+        room1Full))
+    print("__________________________")
