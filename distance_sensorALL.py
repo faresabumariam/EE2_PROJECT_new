@@ -1,4 +1,6 @@
 import time
+import urllib
+import requests
 from gpiozero import Servo
 from time import sleep
 import spidev
@@ -126,5 +128,10 @@ while True:
 
     print(str(finalDist1) + "  " + str(finalDist2) + "  " + str(finalDist3))
     print(zone)
+    url= "https://studev.groept.be/api/a21ib2d04/inputZone/"+zone
+    requests.get(url)
+    # response = urllib.request.urlopen(url)
+    # data = json.loads(response.read())
+
     # print("__________________________________")
     time.sleep(0.05)
